@@ -89,6 +89,10 @@ var data = [[1928,0.4381,0.0308],
 	[2015,0.0138,0.0021],
 	[2016,0.1177,0.0051],
 	[2017,0.2164,0.0139]];
+
+// stock returns from 1928 to 2017 inclusive
+var historicStockReturns = [0.4381, -0.083, -0.2512, -0.4384, -0.0864, 0.4998, -0.0119, 0.4674, 0.3194, -0.3534, 0.2928, -0.011, -0.1067, -0.1277, 0.1917, 0.2506, 0.1903, 0.3582, -0.0843, 0.052, 0.057, 0.183, 0.3081, 0.2368, 0.1815, -0.0121, 0.5256, 0.326, 0.0744, -0.1046, 0.4372, 0.1206, 0.0034, 0.2664, -0.0881, 0.2261, 0.1642, 0.124, -0.0997, 0.238, 0.1081, -0.0824, 0.0356, 0.1422, 0.1876, -0.1431, -0.259, 0.37, 0.2383, -0.0698, 0.0651, 0.1852, 0.3174, -0.047, 0.2042, 0.2234, 0.0615, 0.3124, 0.1849, 0.0581, 0.1654, 0.3148, -0.0306, 0.3023, 0.0749, 0.0997, 0.0133, 0.372, 0.2268, 0.331, 0.2834, 0.2089, -0.0903, -0.1185, -0.2197, 0.2836, 0.1074, 0.0483, 0.1561, 0.0548, -0.3655, 0.2594, 0.1482, 0.021, 0.1589, 0.3215, 0.1352, 0.0138, 0.1177, 0.2164];
+
 // [year, CPI]
 var cpi = [[1928,17.1],
 	[1929,17.1],
@@ -186,31 +190,8 @@ var lastYearOfData = 2017;
 var startingPortfolio = 500000;
 var years = 30;
 var spending = 20000;
-var stockRatio = .99	;
+var stockRatio = .8;
 
-var averageReturns = function(startingYear){
-	var rets = [];
-	var begin = startingYear-firstYearOfData;
-	var end = begin+years;
-	if(end>=data.length)
-		throw('out of bounds')
-
-	for(var i = begin; i<end;i++){
-
-		var stck = data[i][1];
-		var bnd = data[i][2];
-		var yearlyRet = stck*stockRatio + (1-stockRatio)*bnd;
-
-		//minus inflation
-		if(i!==0){
-			var inflation = cpi[i-1][1]/cpi[i][1];
-			yearlyRet*= inflation;
-		}
-
-		rets.push(yearlyRet);
-	}
-	return rets.reduce ( (memo,x) => { return memo+x; } , 0 )/rets.length;
-}
 
 var buildRun = function(startingYear){
 
@@ -219,6 +200,7 @@ var buildRun = function(startingYear){
 	var max = value;
 	var min = value;
 	var maxDD = 0;
+	var rets = [];
 	//index of our data to start with
 	var begin = startingYear-firstYearOfData;
 	var end = begin+years;
@@ -235,6 +217,11 @@ var buildRun = function(startingYear){
 		//spend the money during our year
 		value -= spending;
 
+		// average return calc
+		var stck = data[i][1];
+		var bnd = data[i][2];
+		var yearlyRet = stck*stockRatio + (1-stockRatio)*bnd;
+
 		//add returns
 		var stockValue = value*stockRatio;
 		var bondValue = value*(1-stockRatio);
@@ -247,7 +234,9 @@ var buildRun = function(startingYear){
 		if(i!==0){
 			var inflation = cpi[i-1][1]/cpi[i][1];
 			value*= inflation;
+			yearlyRet*=inflation;
 		}
+
 		value = value<0 ? 0 : value;
 		value = Math.round(value,0);
 		max = value > max? value : max;
@@ -255,27 +244,30 @@ var buildRun = function(startingYear){
 		var currentDD = (max-value)/max;
 		maxDD = currentDD>0 && currentDD>maxDD ? currentDD : maxDD;
 		portfolio.push(value);
+		rets.push(yearlyRet);
 
 	}
 
-
-
-
 	var end = portfolio[ portfolio.length-1 ];
-	return {'history':portfolio, 'maxDD': maxDD , 'end': end, success: (end>0) , avgRet: averageReturns(startingYear)};
+	var avgRet = rets.reduce ( (memo,x) => { return memo+x; } , 0 )/rets.length;
+	return {'history':portfolio, 'maxDD': maxDD , 'end': end, success: (end>0) , 'avgRet': avgRet};
 };
 
 var simulate = function(){
-	var runs = {};
+	var runs = [];
+	var j = 0;
 	for(var i = firstYearOfData;i<lastYearOfData-years;i++){
-		runs[i] = buildRun(i)
+		runs[j] = buildRun(i)
+		j++;
 	}
-	return runs;
+
+	var successRate = runs.reduce((memo,x)=>{ return x.success ? memo+1 : memo;},0)/runs.length;
+	var averageEndVal = runs.reduce((memo,x)=>{ return memo+x.end;},0)/runs.length;
+	var maxDD = runs.reduce((memo,x)=>{ return x.maxDD>memo? x.maxDD : memo;},0);
+	var averageDD = runs.reduce((memo,x)=>{ return memo+x.maxDD;},0)/runs.length;
+
+	return {'successRate': successRate, 'averageEnd':averageEndVal, 'maxDD':maxDD, 'averageDD': averageDD, 'runs': runs };
 };
 
-
-
-var a = buildRun(1928);
-console.log(a);
 var b = simulate();
 console.log(b)
