@@ -1,0 +1,11 @@
+.faded {
+  fill: none;
+  stroke: grey;
+  opacity: .2;
+  stroke-width: 2px;
+}
+.highlighted {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+}
