@@ -4,9 +4,27 @@
 	<script src="https://d3js.org/d3.v5.min.js"></script>
 <link rel="stylesheet" href="main.css">
 <script type="text/javascript" src="FIRESIM.js"></script>
-	
+<script type="text/javascript">
+	window.onload = function(){
+
+		loadData()
+		.then((x)=>{
+
+			buildRun();
+			buildGraph();
+
+		});
+
+	}
+</script>
 </head>
 <body>
-	
+	<form>
+		<input type="text" name="initialPortfolio" value="500000">Initial Portfolio Value
+		<input type="text" name="yearlyWithdrawal" value="20000">Yearly Withdrawal
+		<input type="text" name="years" value="30">Years
+		<input type="text" name="stockRatio" value=".8">Stock Ratio
+		<input type="submit">
+	</form>
 </body>
 </html>
